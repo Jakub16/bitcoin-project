@@ -2,11 +2,26 @@ const bitcoin = require('bitcoinjs-lib');
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors') 
-    
+const {NodeSSH} = require('node-ssh');
+
+const ssh = new NodeSSH()
+
 const app = express();
 const port = 5000;
 app.use(express.json())
 app.use(cors()); 
+
+ssh.connect({
+   host: '172.19.100.27',
+   username: 'stud',
+   password: '***'
+ })
+ .then(() => {
+   ssh.execCommand('bitcoin-cli estimatesmartfee 6', { cwd: '' }).then((result) => {
+     console.log('STDOUT: ' + result.stdout);
+     console.log('STDERR: ' + result.stderr);
+   });
+ });
 
 app.get('/getEstimatedFee', async (req, res) => {
    if (!req.query.network || !req.query.numberOfReceivers || !req.query.feeType) {
