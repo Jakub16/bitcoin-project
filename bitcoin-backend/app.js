@@ -12,9 +12,9 @@ app.use(express.json())
 app.use(cors()); 
 
 ssh.connect({
-   host: '172.19.100.27',
-   username: 'stud',
-   password: '***'
+   host: '172.19.100.15',
+   username: 'testnet',
+   password: 'tajnehaslo'
  });
 
 app.get('/getEstimatedFee', async (req, res) => {
@@ -22,10 +22,10 @@ app.get('/getEstimatedFee', async (req, res) => {
      res.status(400).json({ error: 'Missing parameters' });
      return;
    }
-   res.status(200).json({ estimatedFee: await estimateTransactionSize(req.query.network, req.query.numberOfReceivers, req.query.feeType) })
+   res.status(200).json({ estimatedFee: await estimateTransactionSize(req.query.network, req.query.numberOfReceivers, req.query.feeType, req.query.isBitcoinCore) })
  });
 
-async function estimateTransactionSize(network, numberOfReceivers, feeType, isBItcoinCore = false) {
+async function estimateTransactionSize(network, numberOfReceivers, feeType, isBitcoinCore) {
    const MAINNET = bitcoin.networks.MAINNET;
    const TESTNET = bitcoin.networks.testnet;
    
@@ -78,7 +78,7 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType, isBI
       let mediumFee;
       let lowFee;
       
-      if(isBItcoinCore) {
+      if(isBitcoinCore) {
          let numberOfBlocks;
          switch (feeType) {
             case 'low':
@@ -93,14 +93,23 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType, isBI
             default:
                return null;
          }
-         ssh.execCommand(`bitcoin-cli estimatesmartfee ${numberOfBlocks}`)
-            .then((result) => {
-               const match = result.stdout.match(/feerate\s*:\s*(\w+)/)[1];
-               if (match) {
-                  const value = match.replace("STDOUT: ", "");
-                  fee = value * 100000000;
-               }
-            })
+      const result2 = '{"feerate": 0.00106432,"blocks": 6}'
+      const jsonObject = JSON.parse(result2);
+      const match = jsonObject.feerate
+      fee = match * 100000;
+      // `bitcoin-cli -conf=/home/testnet/bitcoin.conf estimatesmartfee ${numberOfBlocks}` 
+      // ssh.execCommand(`pwd`, { cwd: '/home/testnet' })
+      //       .then((result) => {
+      //          console.log(result);
+      //          const match = result.stdout.match(/feerate\s*:\s*(\w+)/)[1];
+      //          console.log(result.stdout);
+      //          if (match) {
+      //             const value = match.replace("STDOUT: ", "");
+      //             fee = value * 100000000;
+      //             console.log(result.stdout)
+      //             console.log(fee / 1000);
+      //          }
+      //       });
       }
       else {
          let fees;
@@ -112,6 +121,19 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType, isBI
          highFee = fees.high_fee_per_kb / 1000;
          mediumFee = fees.medium_fee_per_kb / 1000;
          lowFee = fees.low_fee_per_kb / 1000;
+         switch (feeType) {
+            case 'low':
+               fee = lowFee;
+               break;
+            case 'medium':
+               fee = mediumFee;
+               break;
+            case 'high':
+               fee = highFee;
+               break;
+            default:
+               return null;
+         }
       }
 
       const keyPair = bitcoin.ECPair.makeRandom({ network: TESTNET });
@@ -129,19 +151,6 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType, isBI
       let tx = txb.build();
       txSize = tx.virtualSize();
 
-      switch (feeType) {
-         case 'low':
-            fee = lowFee;
-            break;
-         case 'medium':
-            fee = mediumFee;
-            break;
-         case 'high':
-            fee = highFee;
-            break;
-         default:
-            return null;
-      }
       return Math.ceil(txSize * fee);
    }
 }
