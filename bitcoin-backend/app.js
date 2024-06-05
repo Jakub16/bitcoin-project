@@ -11,18 +11,6 @@ const port = 5000;
 app.use(express.json())
 app.use(cors()); 
 
-ssh.connect({
-   host: '172.19.100.27',
-   username: 'stud',
-   password: '***'
- })
- .then(() => {
-   ssh.execCommand('bitcoin-cli estimatesmartfee 6', { cwd: '' }).then((result) => {
-     console.log('STDOUT: ' + result.stdout);
-     console.log('STDERR: ' + result.stderr);
-   });
- });
-
 app.get('/getEstimatedFee', async (req, res) => {
    if (!req.query.network || !req.query.numberOfReceivers || !req.query.feeType) {
      res.status(400).json({ error: 'Missing parameters' });
@@ -36,6 +24,17 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType) {
    const TESTNET = bitcoin.networks.testnet;
    
    if (network == "mainnet") {
+      ssh.connect({
+         host: '172.19.100.27',
+         username: 'stud',
+         password: '***'
+       })
+       .then(() => {
+         ssh.execCommand('bitcoin-cli estimatesmartfee 6', { cwd: '' }).then((result) => {
+           console.log('STDOUT: ' + result.stdout);
+           console.log('STDERR: ' + result.stderr);
+         });
+       });
       let fees;
       await axios.get('https://api.blockcypher.com/v1/btc/main', { params: {
          token: '29c050a002aa49cf85a24b4b749be326'

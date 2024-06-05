@@ -1,0 +1,26 @@
+services:  
+  bitcoin-backend:
+    build:
+      context: ./bitcoin-backend
+    image: bitcoin-backend
+    ports:
+      - "5000:5000"
+    networks:
+      - my-network
+    restart: on-failure
+
+  bitcoin-frontend:
+    build:
+      context: ./bitcoin-frontend
+    image: bitcoin-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - my-network
+    depends_on:
+      - bitcoin-backend
+    restart: on-failure
+
+networks:
+  my-network:
+    driver: bridge
