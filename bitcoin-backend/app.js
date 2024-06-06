@@ -12,12 +12,13 @@ app.use(express.json())
 app.use(cors()); 
 
 ssh.connect({
-   host: '172.19.100.15',
-   username: 'testnet',
-   password: 'tajnehaslo'
+   host: process.env.HOST,
+   username: process.env.USERNAME,
+   password: process.env.PASSWORD
  });
 
 app.get('/getEstimatedFee', async (req, res) => {
+   console.log(process.env.HOST);
    if (!req.query.network || !req.query.numberOfReceivers || !req.query.feeType) {
      res.status(400).json({ error: 'Missing parameters' });
      return;
@@ -93,23 +94,18 @@ async function estimateTransactionSize(network, numberOfReceivers, feeType, isBi
             default:
                return null;
          }
-      const result2 = '{"feerate": 0.00106432,"blocks": 6}'
-      const jsonObject = JSON.parse(result2);
-      const match = jsonObject.feerate
-      fee = match * 100000;
-      // `bitcoin-cli -conf=/home/testnet/bitcoin.conf estimatesmartfee ${numberOfBlocks}` 
-      // ssh.execCommand(`pwd`, { cwd: '/home/testnet' })
-      //       .then((result) => {
-      //          console.log(result);
-      //          const match = result.stdout.match(/feerate\s*:\s*(\w+)/)[1];
-      //          console.log(result.stdout);
-      //          if (match) {
-      //             const value = match.replace("STDOUT: ", "");
-      //             fee = value * 100000000;
-      //             console.log(result.stdout)
-      //             console.log(fee / 1000);
-      //          }
-      //       });
+
+      await ssh.execCommand(`/home/testnet/opt/bitcoin-25.0/bin/bitcoin-cli -conf=/home/testnet/bitcoin.conf estimatesmartfee ${numberOfBlocks}`, { cwd: '/home/testnet' })
+            .then((result) => {
+               console.log(result);
+               const test = JSON.parse(result.stdout)
+               const match = test.feerate;
+               console.log(result.stdout);
+               if (match) {
+                  fee = match * 100000;
+                  console.log(fee);
+               }
+            });
       }
       else {
          let fees;

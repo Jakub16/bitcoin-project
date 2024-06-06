@@ -17,7 +17,8 @@ function App() {
         await axios.get('http://localhost:5000/getEstimatedFee', { params: {
           network: selectedNetwork,
           feeType: selectedFeeType,
-          numberOfReceivers: selectedNumberOfRecipients
+          numberOfReceivers: selectedNumberOfRecipients,
+          isBitcoinCore: true
         } }).then(res => {
           setResult(res.data.estimatedFee);
         })

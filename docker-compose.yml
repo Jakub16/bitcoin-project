@@ -3,6 +3,8 @@ services:
     build:
       context: ./bitcoin-backend
     image: bitcoin-backend
+    env_file:
+      - secrets.env
     ports:
       - "5000:5000"
     networks:
